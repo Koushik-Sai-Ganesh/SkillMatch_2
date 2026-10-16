@@ -1,0 +1,109 @@
+{
+  "logistic_regression": {
+    "model": "Logistic Regression (ridge, calibrated)",
+    "accuracy": 0.8597,
+    "precision": 0.6471,
+    "recall": 0.3056,
+    "f1": 0.4151,
+    "roc_auc": 0.8405,
+    "confusion_matrix": [
+      [
+        179,
+        6
+      ],
+      [
+        25,
+        11
+      ]
+    ],
+    "cv_roc_auc_mean": 0.8272,
+    "cv_roc_auc_std": 0.0502
+  },
+  "xgboost": {
+    "model": "XGBoost (gradient-boosted trees)",
+    "accuracy": 0.8326,
+    "precision": 0.4828,
+    "recall": 0.3889,
+    "f1": 0.4308,
+    "roc_auc": 0.7851,
+    "confusion_matrix": [
+      [
+        170,
+        15
+      ],
+      [
+        22,
+        14
+      ]
+    ],
+    "cv_roc_auc_mean": 0.8145,
+    "cv_roc_auc_std": 0.0456
+  },
+  "champion": "logistic_regression",
+  "feature_importance_top15": [
+    {
+      "feature": "Department_Sales",
+      "importance": 0.0428
+    },
+    {
+      "feature": "OverTime_No",
+      "importance": 0.0391
+    },
+    {
+      "feature": "StockOptionLevel",
+      "importance": 0.0365
+    },
+    {
+      "feature": "YearsWithCurrManager",
+      "importance": 0.0343
+    },
+    {
+      "feature": "JobRole_Sales Executive",
+      "importance": 0.034
+    },
+    {
+      "feature": "OverTime_Yes",
+      "importance": 0.0267
+    },
+    {
+      "feature": "MonthlyIncome",
+      "importance": 0.0253
+    },
+    {
+      "feature": "NumCompaniesWorked",
+      "importance": 0.0233
+    },
+    {
+      "feature": "EnvironmentSatisfaction",
+      "importance": 0.023
+    },
+    {
+      "feature": "YearsAtCompany",
+      "importance": 0.0229
+    },
+    {
+      "feature": "JobSatisfaction",
+      "importance": 0.0221
+    },
+    {
+      "feature": "ManagerStability",
+      "importance": 0.0216
+    },
+    {
+      "feature": "BusinessTravel_Non-Travel",
+      "importance": 0.0215
+    },
+    {
+      "feature": "JobLevel",
+      "importance": 0.0208
+    },
+    {
+      "feature": "Department_Research & Development",
+      "importance": 0.0207
+    }
+  ],
+  "train_size": 1029,
+  "val_size": 220,
+  "test_size": 221,
+  "base_rate_attrition": 0.1612
+}

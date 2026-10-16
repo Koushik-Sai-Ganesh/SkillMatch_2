@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SkillMatch — Attrition Risk Scoring</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1C2B39;
+    --ink-soft:#4B5A66;
+    --paper:#F5F4F0;
+    --panel:#FFFFFF;
+    --line:#DAD6CC;
+    --amber:#C98A3E;
+    --sage:#3F5C50;
+    --rust:#B0483A;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'IBM Plex Sans', sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .app{
+    max-width:1180px;
+    margin:0 auto;
+    padding:40px 28px 80px;
+  }
+  header.masthead{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    border-bottom:1px solid var(--line);
+    padding-bottom:20px;
+    margin-bottom:36px;
+    flex-wrap:wrap;
+    gap:8px;
+  }
+  header.masthead h1{
+    font-family:'Fraunces', serif;
+    font-weight:500;
+    font-size:30px;
+    margin:0;
+    letter-spacing:-0.01em;
+  }
+  header.masthead p{
+    margin:0;
+    color:var(--ink-soft);
+    font-size:14px;
+    max-width:360px;
+    text-align:right;
+    line-height:1.5;
+  }
+  .layout{
+    display:grid;
+    grid-template-columns:1fr 360px;
+    gap:32px;
+    align-items:start;
+  }
+  @media (max-width:880px){
+    .layout{grid-template-columns:1fr;}
+  }
+  .group{
+    margin-bottom:28px;
+  }
+  .group h2{
+    font-size:12px;
+    text-transform:uppercase;
+    letter-spacing:0.08em;
+    font-weight:600;
+    color:var(--ink-soft);
+    margin:0 0 14px;
+    padding-bottom:8px;
+    border-bottom:1px solid var(--line);
+  }
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(3, 1fr);
+    gap:16px 20px;
+  }
+  @media (max-width:640px){
+    .grid{grid-template-columns:1fr 1fr;}
+  }
+  .field label{
+    display:block;
+    font-size:12.5px;
+    color:var(--ink-soft);
+    margin-bottom:5px;
+  }
+  .field select,
+  .field input[type="number"]{
+    width:100%;
+    padding:9px 10px;
+    border:1px solid var(--line);
+    background:var(--panel);
+    color:var(--ink);
+    font-family:'IBM Plex Sans', sans-serif;
+    font-size:14px;
+    border-radius:2px;
+  }
+  .field select:focus,
+  .field input:focus{
+    outline:2px solid var(--ink);
+    outline-offset:1px;
+  }
+  .scale{
+    display:flex;
+    gap:6px;
+  }
+  .scale button{
+    flex:1;
+    padding:8px 0;
+    border:1px solid var(--line);
+    background:var(--panel);
+    color:var(--ink-soft);
+    font-family:'IBM Plex Sans', sans-serif;
+    font-size:13px;
+    cursor:pointer;
+    border-radius:2px;
+  }
+  .scale button.active{
+    background:var(--ink);
+    border-color:var(--ink);
+    color:#fff;
+  }
+  .scale button:focus-visible{
+    outline:2px solid var(--amber);
+    outline-offset:1px;
+  }
+  .submit-row{
+    display:flex;
+    align-items:center;
+    gap:16px;
+    margin-top:8px;
+  }
+  button.primary{
+    background:var(--ink);
+    color:#fff;
+    border:none;
+    padding:13px 26px;
+    font-size:14.5px;
+    font-family:'IBM Plex Sans', sans-serif;
+    font-weight:500;
+    cursor:pointer;
+    border-radius:2px;
+  }
+  button.primary:hover{ background:#12202C; }
+  button.primary:disabled{ background:#9AA5AC; cursor:not-allowed; }
+  .form-note{ font-size:13px; color:var(--ink-soft); }
+  /* ---- result panel ---- */
+  .result{
+    position:sticky;
+    top:32px;
+    border:1px solid var(--line);
+    background:var(--panel);
+    padding:26px 24px;
+    min-height:420px;
+    display:flex;
+    flex-direction:column;
+  }
+  .result h2{
+    font-size:12px;
+    text-transform:uppercase;
+    letter-spacing:0.08em;
+    font-weight:600;
+    color:var(--ink-soft);
+    margin:0 0 20px;
+  }
+  .result-empty{
+    flex:1;
+    display:flex;
+    align-items:center;
+    color:var(--ink-soft);
+    font-size:14px;
+    line-height:1.6;
+    border:1px dashed var(--line);
+    padding:20px;
+  }
+  .result-body{ display:none; }
+  .result-body.visible{ display:block; animation:fade-up 0.35s ease; }
+  @keyframes fade-up{
+    from{ opacity:0; transform:translateY(6px); }
+    to{ opacity:1; transform:translateY(0); }
+  }
+  .score-number{
+    font-family:'Fraunces', serif;
+    font-weight:500;
+    font-size:64px;
+    line-height:1;
+    margin:0;
+  }
+  .score-label{
+    font-size:14px;
+    color:var(--ink-soft);
+    margin:6px 0 22px;
+  }
+  .verdict{
+    display:inline-block;
+    padding:6px 12px;
+    font-size:13px;
+    font-weight:500;
+    border-radius:2px;
+    margin-bottom:20px;
+  }
+  .verdict.leave{ background:rgba(176,72,58,0.12); color:var(--rust); }
+  .verdict.stay{ background:rgba(92,123,111,0.14); color:var(--sage); }
+  .bar-track{
+    height:8px;
+    background:#EDEBE4;
+    border-radius:4px;
+    overflow:hidden;
+    margin-bottom:24px;
+  }
+  .bar-fill{
+    height:100%;
+    background:var(--amber);
+    width:0%;
+    transition:width 0.5s ease;
+  }
+  .result-note{
+    font-size:13px;
+    color:var(--ink-soft);
+    line-height:1.6;
+    border-top:1px solid var(--line);
+    padding-top:16px;
+    margin-top:auto;
+  }
+  .error-box{
+    border:1px solid var(--rust);
+    background:rgba(176,72,58,0.06);
+    color:var(--rust);
+    padding:14px 16px;
+    font-size:13.5px;
+    margin-top:16px;
+    display:none;
+  }
+  .error-box.visible{ display:block; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="masthead">
+    <h1>SkillMatch</h1>
+    <p>Attrition risk scoring, from the same model and pipeline used in training — no separate lookup logic.</p>
+  </header>
+
+  <div class="layout">
+    <form id="predict-form">
+
+      <div class="group">
+        <h2>Personal</h2>
+        <div class="grid">
+          <div class="field">
+            <label for="Age">Age</label>
+            <input type="number" id="Age" min="18" max="70" value="30" required />
+          </div>
+          <div class="field">
+            <label for="Gender">Gender</label>
+            <select id="Gender">
+              <option>Male</option><option>Female</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="MaritalStatus">Marital status</label>
+            <select id="MaritalStatus">
+              <option>Single</option><option>Married</option><option>Divorced</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="DistanceFromHome">Distance from home (km)</label>
+            <input type="number" id="DistanceFromHome" min="0" max="60" value="8" required />
+          </div>
+          <div class="field">
+            <label for="Education">Education level (1–5)</label>
+            <input type="number" id="Education" min="1" max="5" value="3" required />
+          </div>
+          <div class="field">
+            <label for="EducationField">Education field</label>
+            <select id="EducationField">
+              <option>Life Sciences</option><option>Medical</option><option>Marketing</option>
+              <option>Technical Degree</option><option>Human Resources</option><option>Other</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="group">
+        <h2>Job</h2>
+        <div class="grid">
+          <div class="field">
+            <label for="Department">Department</label>
+            <select id="Department">
+              <option>Sales</option><option>Research & Development</option><option>Human Resources</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="JobRole">Job role</label>
+            <select id="JobRole">
+              <option>Sales Executive</option><option>Research Scientist</option><option>Laboratory Technician</option>
+              <option>Manufacturing Director</option><option>Healthcare Representative</option>
+              <option>Manager</option><option>Sales Representative</option>
+              <option>Research Director</option><option>Human Resources</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="JobLevel">Job level (1–5)</label>
+            <input type="number" id="JobLevel" min="1" max="5" value="2" required />
+          </div>
+          <div class="field">
+            <label for="BusinessTravel">Business travel</label>
+            <select id="BusinessTravel">
+              <option>Travel_Rarely</option><option>Travel_Frequently</option><option>Non-Travel</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="OverTime">Works overtime</label>
+            <select id="OverTime">
+              <option>No</option><option>Yes</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="NumCompaniesWorked">Companies worked at</label>
+            <input type="number" id="NumCompaniesWorked" min="0" max="12" value="2" required />
+          </div>
+        </div>
+      </div>
+
+      <div class="group">
+        <h2>Compensation</h2>
+        <div class="grid">
+          <div class="field">
+            <label for="MonthlyIncome">Monthly income ($)</label>
+            <input type="number" id="MonthlyIncome" min="1000" max="20000" value="5000" required />
+          </div>
+          <div class="field">
+            <label for="DailyRate">Daily rate</label>
+            <input type="number" id="DailyRate" min="100" max="1500" value="800" required />
+          </div>
+          <div class="field">
+            <label for="HourlyRate">Hourly rate</label>
+            <input type="number" id="HourlyRate" min="30" max="100" value="65" required />
+          </div>
+          <div class="field">
+            <label for="MonthlyRate">Monthly rate</label>
+            <input type="number" id="MonthlyRate" min="2000" max="27000" value="14000" required />
+          </div>
+          <div class="field">
+            <label for="PercentSalaryHike">Last salary hike (%)</label>
+            <input type="number" id="PercentSalaryHike" min="10" max="25" value="14" required />
+          </div>
+          <div class="field">
+            <label for="StockOptionLevel">Stock option level (0–3)</label>
+            <input type="number" id="StockOptionLevel" min="0" max="3" value="1" required />
+          </div>
+        </div>
+      </div>
+
+      <div class="group">
+        <h2>Tenure</h2>
+        <div class="grid">
+          <div class="field">
+            <label for="TotalWorkingYears">Total working years</label>
+            <input type="number" id="TotalWorkingYears" min="0" max="40" value="8" required />
+          </div>
+          <div class="field">
+            <label for="YearsAtCompany">Years at this company</label>
+            <input type="number" id="YearsAtCompany" min="0" max="40" value="4" required />
+          </div>
+          <div class="field">
+            <label for="YearsInCurrentRole">Years in current role</label>
+            <input type="number" id="YearsInCurrentRole" min="0" max="20" value="3" required />
+          </div>
+          <div class="field">
+            <label for="YearsSinceLastPromotion">Years since last promotion</label>
+            <input type="number" id="YearsSinceLastPromotion" min="0" max="15" value="1" required />
+          </div>
+          <div class="field">
+            <label for="YearsWithCurrManager">Years with current manager</label>
+            <input type="number" id="YearsWithCurrManager" min="0" max="17" value="3" required />
+          </div>
+          <div class="field">
+            <label for="TrainingTimesLastYear">Trainings last year</label>
+            <input type="number" id="TrainingTimesLastYear" min="0" max="6" value="2" required />
+          </div>
+        </div>
+      </div>
+
+      <div class="group">
+        <h2>Satisfaction &amp; performance <span style="font-weight:400;text-transform:none;letter-spacing:0;">(1 low – 4 high)</span></h2>
+        <div class="grid">
+          <div class="field">
+            <label>Job satisfaction</label>
+            <div class="scale" data-target="JobSatisfaction">
+              <button type="button" data-value="1">1</button>
+              <button type="button" data-value="2">2</button>
+              <button type="button" data-value="3" class="active">3</button>
+              <button type="button" data-value="4">4</button>
+            </div>
+          </div>
+          <div class="field">
+            <label>Environment satisfaction</label>
+            <div class="scale" data-target="EnvironmentSatisfaction">
+              <button type="button" data-value="1">1</button>
+              <button type="button" data-value="2">2</button>
+              <button type="button" data-value="3" class="active">3</button>
+              <button type="button" data-value="4">4</button>
+            </div>
+          </div>
+          <div class="field">
+            <label>Relationship satisfaction</label>
+            <div class="scale" data-target="RelationshipSatisfaction">
+              <button type="button" data-value="1">1</button>
+              <button type="button" data-value="2">2</button>
+              <button type="button" data-value="3" class="active">3</button>
+              <button type="button" data-value="4">4</button>
+            </div>
+          </div>
+          <div class="field">
+            <label>Work-life balance</label>
+            <div class="scale" data-target="WorkLifeBalance">
+              <button type="button" data-value="1">1</button>
+              <button type="button" data-value="2">2</button>
+              <button type="button" data-value="3" class="active">3</button>
+              <button type="button" data-value="4">4</button>
+            </div>
+          </div>
+          <div class="field">
+            <label>Job involvement</label>
+            <div class="scale" data-target="JobInvolvement">
+              <button type="button" data-value="1">1</button>
+              <button type="button" data-value="2">2</button>
+              <button type="button" data-value="3" class="active">3</button>
+              <button type="button" data-value="4">4</button>
+            </div>
+          </div>
+          <div class="field">
+            <label>Performance rating (3–4)</label>
+            <div class="scale" data-target="PerformanceRating">
+              <button type="button" data-value="3" class="active">3</button>
+              <button type="button" data-value="4">4</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="submit-row">
+        <button type="submit" class="primary" id="submit-btn">Score this employee</button>
+        <span class="form-note">Sends the record to the local /predict endpoint.</span>
+      </div>
+      <div class="error-box" id="error-box"></div>
+    </form>
+
+    <aside class="result">
+      <h2>Risk score</h2>
+      <div class="result-empty" id="result-empty">
+        Fill in the employee's details and score them to see the model's attrition-risk estimate here.
+      </div>
+      <div class="result-body" id="result-body">
+        <p class="score-number" id="score-number">—</p>
+        <p class="score-label">estimated probability of leaving</p>
+        <span class="verdict" id="verdict">—</span>
+        <div class="bar-track"><div class="bar-fill" id="bar-fill"></div></div>
+        <p class="result-note">This score comes from the packaged SkillMatch model (calibrated logistic regression). It reflects one point-in-time estimate, not a certainty — use it to prioritise a conversation, not to make a decision on its own.</p>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<script>
+document.querySelectorAll('.scale').forEach(group => {
+  group.addEventListener('click', e => {
+    const btn = e.target.closest('button');
+    if(!btn) return;
+    group.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  });
+});
+
+function scaleValue(target){
+  const active = document.querySelector(`.scale[data-target="${target}"] button.active`);
+  return active ? parseInt(active.dataset.value, 10) : 3;
+}
+
+const form = document.getElementById('predict-form');
+const submitBtn = document.getElementById('submit-btn');
+const errorBox = document.getElementById('error-box');
+const resultEmpty = document.getElementById('result-empty');
+const resultBody = document.getElementById('result-body');
+const scoreNumber = document.getElementById('score-number');
+const verdictEl = document.getElementById('verdict');
+const barFill = document.getElementById('bar-fill');
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  errorBox.classList.remove('visible');
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Scoring…';
+
+  const payload = {
+    Age: parseInt(document.getElementById('Age').value, 10),
+    BusinessTravel: document.getElementById('BusinessTravel').value,
+    DailyRate: parseInt(document.getElementById('DailyRate').value, 10),
+    Department: document.getElementById('Department').value,
+    DistanceFromHome: parseInt(document.getElementById('DistanceFromHome').value, 10),
+    Education: parseInt(document.getElementById('Education').value, 10),
+    EducationField: document.getElementById('EducationField').value,
+    EnvironmentSatisfaction: scaleValue('EnvironmentSatisfaction'),
+    Gender: document.getElementById('Gender').value,
+    HourlyRate: parseInt(document.getElementById('HourlyRate').value, 10),
+    JobInvolvement: scaleValue('JobInvolvement'),
+    JobLevel: parseInt(document.getElementById('JobLevel').value, 10),
+    JobRole: document.getElementById('JobRole').value,
+    JobSatisfaction: scaleValue('JobSatisfaction'),
+    MaritalStatus: document.getElementById('MaritalStatus').value,
+    MonthlyIncome: parseInt(document.getElementById('MonthlyIncome').value, 10),
+    MonthlyRate: parseInt(document.getElementById('MonthlyRate').value, 10),
+    NumCompaniesWorked: parseInt(document.getElementById('NumCompaniesWorked').value, 10),
+    OverTime: document.getElementById('OverTime').value,
+    PercentSalaryHike: parseInt(document.getElementById('PercentSalaryHike').value, 10),
+    PerformanceRating: scaleValue('PerformanceRating'),
+    RelationshipSatisfaction: scaleValue('RelationshipSatisfaction'),
+    StockOptionLevel: parseInt(document.getElementById('StockOptionLevel').value, 10),
+    TotalWorkingYears: parseInt(document.getElementById('TotalWorkingYears').value, 10),
+    TrainingTimesLastYear: parseInt(document.getElementById('TrainingTimesLastYear').value, 10),
+    WorkLifeBalance: scaleValue('WorkLifeBalance'),
+    YearsAtCompany: parseInt(document.getElementById('YearsAtCompany').value, 10),
+    YearsInCurrentRole: parseInt(document.getElementById('YearsInCurrentRole').value, 10),
+    YearsSinceLastPromotion: parseInt(document.getElementById('YearsSinceLastPromotion').value, 10),
+    YearsWithCurrManager: parseInt(document.getElementById('YearsWithCurrManager').value, 10),
+  };
+
+  try{
+    const res = await fetch('/predict', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(payload)
+    });
+    if(!res.ok){
+      const errText = await res.text();
+      throw new Error(`Server returned ${res.status}: ${errText}`);
+    }
+    const data = await res.json();
+    const pct = Math.round(data.attrition_probability * 100);
+
+    resultEmpty.style.display = 'none';
+    resultBody.classList.add('visible');
+    scoreNumber.textContent = pct + '%';
+    barFill.style.width = pct + '%';
+
+    if(data.predicted_label === 'Leave'){
+      verdictEl.textContent = 'Elevated risk of leaving';
+      verdictEl.className = 'verdict leave';
+      barFill.style.background = 'var(--rust)';
+    } else {
+      verdictEl.textContent = 'Likely to stay';
+      verdictEl.className = 'verdict stay';
+      barFill.style.background = 'var(--sage)';
+    }
+  } catch(err){
+    errorBox.textContent = 'Could not get a prediction: ' + err.message;
+    errorBox.classList.add('visible');
+  } finally{
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Score this employee';
+  }
+});
+</script>
+</body>
+</html>
